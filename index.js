@@ -29,15 +29,28 @@ const MONGO_URI = process.env.MONGO_URI;
 // }));
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL,  
-  "http://localhost:5173"    
+  "http://localhost:3000", // dev frontend
+  "https://library-frontend-pink.vercel.app", // prod frontend
 ];
-
 
 // Middleware
 // app.use(cors({ origin: "*", credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS not allowed for this origin"));
+      }
+    },
+    credentials: true,
+  })
+);
+
 
 // Serve uploaded images statically
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
