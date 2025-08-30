@@ -5,45 +5,40 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import bcrypt from "bcryptjs";
-import path from "path";   
+import path from "path";
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
 import bookRoutes from "./routes/bookRoutes.js";
 import borrowRoutes from "./routes/borrowRoutes.js";
-import userRoutes from "./routes/userRoutes.js"; 
+import userRoutes from "./routes/userRoutes.js";
 
 // Models
 import User from "./models/user.js";
 
-// Config 
+// ------------------ Config ------------------
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 
-// app.use(cors({
-//   origin: process.env.FRONTEND_URL,
-//   credentials: true
-// }));
-
+// ------------------ CORS Setup ------------------
 const allowedOrigins = [
-  "http://localhost:3000", // dev frontend
-  "https://library-frontend-pink.vercel.app", // prod frontend
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
 ];
-
-// Middleware
-// app.use(cors({ origin: "*", credentials: true }));
-app.use(express.json());
-app.use(cookieParser());
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow requests with no origin (mobile apps, Postman)
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.log("❌ Blocked CORS request from:", origin);
         callback(new Error("CORS not allowed for this origin"));
       }
     },
@@ -51,22 +46,25 @@ app.use(
   })
 );
 
+// ------------------ Middleware ------------------
+app.use(express.json());
+app.use(cookieParser());
 
-// Serve uploaded images statically
+// ✅ Serve uploaded images statically
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-// Test Route
+// ------------------ Test Route ------------------
 app.get("/hello", (req, res) => {
   res.send("Hello world!");
 });
 
-//  API Routes
+// ------------------ API Routes ------------------
 app.use("/api/auth", authRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/borrow", borrowRoutes);
-app.use("/api/users", userRoutes); 
+app.use("/api/users", userRoutes); // ✅ register new user routes
 
-// Seed Librarian 
+// ------------------ Seed Librarian ------------------
 const seedLibrarian = async () => {
   try {
     const librarian = await User.findOne({ email: "librarian@gmail.com" });
@@ -78,26 +76,26 @@ const seedLibrarian = async () => {
         password: hashedPassword,
         role: "librarian",
       });
-      console.log(" Default librarian created: librarian@gmail.com / librarian");
+      console.log("✅ Default librarian created: librarian@gmail.com / librarian");
     } else {
-      console.log(" Librarian already exists");
+      console.log("ℹ️ Librarian already exists");
     }
   } catch (error) {
-    console.error(" Error seeding librarian user:", error);
+    console.error("❌ Error seeding librarian user:", error);
   }
 };
 
-//  MongoDB Connection 
+// ------------------ MongoDB Connection ------------------
 mongoose
   .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
-    console.log("Connected to MongoDB");
-    app.listen(PORT, () =>  console.log(`Server running on port ${PORT}`) 
-  );
-  // console.log(` Server running at http://localhost:${PORT}`));
+    console.log("✅ Connected to MongoDB");
+    app.listen(PORT, () =>
+      console.log(`🚀 Server running at http://localhost:${PORT}`)
+    );
     seedLibrarian();
   })
   .catch((err) => {
-    console.error(" DB connection failed:", err);
+    console.error("❌ DB connection failed:", err);
     process.exit(1);
   });
